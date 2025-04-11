@@ -23,8 +23,13 @@ class Post(models.Model):
     def __str__(self):
         return self.content[:50] + "..." if len(self.content) > 50 else self.content # show first 50 characters (for display)
 
-    # I will add get_photos and like_count methods later
+    def get_photos(self):
+        return self.photo_set.all()
 
+    @property
+    def like_count(self):
+        return self.liked.count() # counts number via the liked
+    
     class Meta:   
         ordering = ['created_at'] # default ordering when fetched from DB (oldest first)
         
