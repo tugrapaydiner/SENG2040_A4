@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Topic, Post
 from django.contrib.auth.decorators import login_required
 from .forms import PostForm
+from django.http import JsonResponse
 
 def topic_list(request):
     topics = Topic.objects.all().order_by('-created_at') # sort by created_at  (newest first)
@@ -18,7 +19,10 @@ def topic_detail(request, pk):
 
     if request.method == 'POST': # check if the request method is POST ( submitted? )
         if not request.user.is_authenticated: # makesure user is logged in before posting
-            return redirect('login') # redirects to login if not loged
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'Authentication required.'}, status=401) # 401 Unauthorized
+            else:
+                return redirect('login') # redirects to login if not loged
 
         form = PostForm(request.POST) # populate with request data
 
@@ -28,7 +32,20 @@ def topic_detail(request, pk):
             new_post.topic = topic # set topic to the current topic being viewed
             new_post.save() # now save to database
 
-            return redirect('topic_detail', pk=topic.pk) # go back to same topic page to avoid double posting
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' # check if request is AJAX using header
+            if is_ajax: # if AJAX, return JSON response with new details
+                return JsonResponse({
+                    'message': 'success',
+                    'post_id': new_post.id,
+                    'content': new_post.content,
+                    'author': new_post.author.username,
+                    'created_at': new_post.created_at.strftime('%B %d, %Y, %I:%M %p').replace('AM', 'a.m.').replace('PM', 'p.m.'), # Example format
+                })
+            else:
+                return redirect('topic_detail', pk=topic.pk) # go back to same topic page to avoid double posting
+        else:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest': # handle invalid form in AJAX by sending error as JSON
+                return JsonResponse({'error': 'Invalid form data.', 'errors': form.errors}, status=400) # 400 Bad Request
 
     else: # if form has errors or it's a GET request, show the page with the form
         form = PostForm()
