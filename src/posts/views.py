@@ -16,6 +16,7 @@ def topic_list(request):
 def topic_detail(request, pk):
     topic = get_object_or_404(Topic, pk=pk) # get Topic by ID or show 404 if not found
     posts = topic.posts.all().order_by('created_at')  # get all posts for this topic, sorted by oldest first
+    form = PostForm()
 
     if request.method == 'POST': # check if the request method is POST ( submitted? )
         if not request.user.is_authenticated: # makesure user is logged in before posting
@@ -42,7 +43,7 @@ def topic_detail(request, pk):
                     'created_at': new_post.created_at.strftime('%B %d, %Y, %I:%M %p').replace('AM', 'a.m.').replace('PM', 'p.m.'), # Example format
                 })
             else:
-                return redirect('topic_detail', pk=topic.pk) # go back to same topic page to avoid double posting
+                return redirect('posts:topic_detail', pk=topic.pk) # go back to same topic page to avoid double posting
         else:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest': # handle invalid form in AJAX by sending error as JSON
                 return JsonResponse({'error': 'Invalid form data.', 'errors': form.errors}, status=400) # 400 Bad Request

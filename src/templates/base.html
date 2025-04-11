@@ -9,7 +9,7 @@
     <header>
         <h1><a href="/">My Forum App</a></h1>
         <nav>
-            <a href="{% url 'topic_list' %}">Topics</a> |
+            <a href="{% url 'posts:topic_list' %}">Topics</a> |
             {% if user.is_authenticated %}
             <span>Hi {{ user.username }}!</span>
             <form action="{% url 'logout' %}" method="post" style="display: inline;">
