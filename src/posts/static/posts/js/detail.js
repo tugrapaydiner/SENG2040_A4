@@ -201,4 +201,75 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    const editPostForms = document.querySelectorAll('.edit-post-form');
+    console.log(`Found ${editPostForms.length} edit post forms.`);
+
+    editPostForms.forEach(form =>
+    {
+        form.addEventListener('submit', function (event)
+        {
+            event.preventDefault(); // prevent default form submission
+
+            const postId = this.dataset.postId;
+            const url = this.dataset.url;
+            const modalId = `#editPostModal-${postId}`;
+            const contentTextarea = this.querySelector(`#edit-content-${postId}`); // find specific textarea within this form
+            const newContent = contentTextarea?.value;
+
+            console.log(`Edit form submitted for post ${postId}, URL: ${url}`);
+
+            if (newContent === null || newContent === undefined)
+            {
+                console.error("Could not find content textarea or get its value.");
+                alert("Error submitting edit.");
+                return; // stop if can't found
+            }
+
+            const formData = new FormData(); // use FormData to send the content
+            formData.append('content', newContent); // add content to form data
+
+            fetch(url,
+                {
+                method: 'POST',
+                body: formData, // send content as form data
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(response =>
+                {
+                    console.log(`Edit request response status for post ${postId}:`, response.status);
+                    if (!response.ok)
+                    {
+                        return response.json().then(errData => { throw errData; }).catch(() => { throw new Error(`HTTP error! status: ${response.status}`); });
+                    }
+                    return response.json();
+                })
+                .then(data =>
+                {
+                    console.log(`Edit request success data for post ${postId}:`, data);
+                    if (data.message === 'success')
+                    {
+                        const postContentElement = document.getElementById(`post-content-${postId}`); // find paragraph displaying post content on main page
+                        if (postContentElement)
+                        {
+                            postContentElement.innerHTML = data.content_html; // update innerHTML with HTML version from response
+                            console.log(`Updated post content ${postId} in DOM.`);
+                        }
+                        $(modalId).modal('hide'); // hide  edit modal
+                    }
+                    else
+                    {
+                        throw data; // treat it like error
+                    }
+                })
+                .catch(error =>
+                {
+                    console.error(`Error editing post ${postId}:`, error);
+                    alert(`Error editing post: ${error.error || 'Please try again.'}`);
+                    $(modalId).modal('hide');
+                });
+        });
+    });
 });

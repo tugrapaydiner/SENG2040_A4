@@ -93,3 +93,30 @@ def delete_post(request, pk):
             return JsonResponse({'error': 'You do not have permission to delete this post.'}, status=403) # user is not the author, return forbidden error
     else:
         return HttpResponseForbidden("Invalid request method or not AJAX.") # invalid method or not AJAX
+
+@login_required
+def edit_post(request, pk):
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if request.method == 'POST' and is_ajax:
+        post = get_object_or_404(Post, pk=pk)
+        if request.user != post.author: # check permission
+            return JsonResponse({'error': 'You do not have permission to edit this post.'}, status=403) # forbidden
+
+        new_content = request.POST.get('content', None) # get new content from POST data ( textarea name is 'content')
+
+        if new_content is not None: # check if content was sent
+            if post.content != new_content: # if content actually changed (optional, prevents saving if no change)
+                post.content = new_content.strip() # update content (strip whitespace)
+                post.save(update_fields=['content', 'updated_at']) # save only specified fields
+
+            
+            return JsonResponse({ # return success with updated content (even if unchanged, return current)
+                'message': 'success',
+                'post_id': post.pk,
+                'content': post.content, # send back updated content
+                'content_html': post.content.replace('\n', '<br>'), # prerender line breaks for JS
+             })
+        else: # content missing in the request
+             return JsonResponse({'error': 'Content field missing.'}, status=400) # bad request
+    else:
+        return HttpResponseForbidden("Invalid request method or not AJAX.") # invalid method or not AJAX
