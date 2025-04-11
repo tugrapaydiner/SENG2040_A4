@@ -46,9 +46,8 @@ def topic_detail(request, pk):
         else:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest': # handle invalid form in AJAX by sending error as JSON
                 return JsonResponse({'error': 'Invalid form data.', 'errors': form.errors}, status=400) # 400 Bad Request
-
-    else: # if form has errors or it's a GET request, show the page with the form
-        form = PostForm()
+            else: # if form has errors or it's a GET request, show the page with the form
+                form = PostForm()
 
     context = {
         'topic': topic, # pass topic object
@@ -57,3 +56,26 @@ def topic_detail(request, pk):
     }
 
     return render(request, 'posts/topic_detail.html', context) # show the 'topic_detail' page with the given data
+
+@login_required
+def like_unlike_post(request, pk):
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' # check if request is AJAX and POST (we only handle AJAX POST for this)
+    if request.method == 'POST' and is_ajax:
+        post = get_object_or_404(Post, pk=pk) # get specific Post or return 404
+        user = request.user # get current logged user
+
+        if user in post.liked.all(): # check if  user already likes this post
+            post.liked.remove(user) # user already liked it ( remove the like )
+            liked = False # flag to show user does not like it anymore
+        else:
+            post.liked.add(user) # user didnt liked it yet (add the like)
+            liked = True # flag it now liked
+
+        return JsonResponse({
+            'message': 'success',
+            'post_id': post.pk,
+            'liked': liked,
+            'like_count': post.like_count,
+        })
+    else:
+        return HttpResponseForbidden("Invalid request method or not AJAX.") # if not AJAX POST request, forbid access
