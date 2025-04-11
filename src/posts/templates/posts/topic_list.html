@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Forum Topics{% endblock title %}
+{% block content %}
+<h2>Forum Topics</h2>
+
+<hr>
+  {% if topics %} 
+<ul>
+    {% for topic in topics %}
+    <li>
+       <h3><a href="#">{{ topic.title }}</a></h3>
+        <p>
+            Started by: {{ topic.author.username }}
+            on {{ topic.created_at|date:"F j, Y, P" }}
+        </p>
+    </li>
+    <hr>
+    {% endfor %}
+</ul>
+  {% else %}
+<p>No topics have been created yet.</p>
+  {% endif %}
+{% endblock content %}
