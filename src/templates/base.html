@@ -6,22 +6,18 @@
     <title>{% block title %}My Forum{% endblock title %}</title>
 </head>
 <body>
-
     <header>
         <h1><a href="/">My Forum App</a></h1>
         <nav>
             <a href="{% url 'topic_list' %}">Topics</a> |
-
             {% if user.is_authenticated %}
             <span>Hi {{ user.username }}!</span>
-
             <form action="{% url 'logout' %}" method="post" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit">Logout</button>
             </form>
             {% else %}
             <a href="{% url 'login' %}">Login</a>
-
             {% endif %}
         </nav>
         <hr>
@@ -34,8 +30,12 @@
     </main>
 
     <footer>
+        <hr>
         <p>© {% now "Y" %} My Forum App</p>
     </footer>
+
+    {% block scripts %}
+    {% endblock scripts %}
 
 </body>
 </html>
