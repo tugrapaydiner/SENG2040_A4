@@ -27,3 +27,11 @@ class Post(models.Model):
 
     class Meta:   
         ordering = ['created_at'] # default ordering when fetched from DB (oldest first)
+        
+class Photo(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE) # link back to the Post this photo is attached to if Post deleted, delete Photo
+    image = models.ImageField(upload_to='photos/') # with pillow library
+    created = models.DateTimeField(auto_now_add=True) # record creation time auto (once)
+
+    def __str__(self):
+        return f"Photo for Post {self.post.id} - {self.image.name}" # show info about the photo and its asociated post ID
