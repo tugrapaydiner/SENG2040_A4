@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Topic, Post
 from django.contrib.auth.decorators import login_required
 from .forms import PostForm
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 
 def topic_list(request):
     topics = Topic.objects.all().order_by('-created_at') # sort by created_at  (newest first)

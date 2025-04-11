@@ -53,13 +53,36 @@
 
 <hr>
 
-<h3>Add a Reply</h3>
 {% if user.is_authenticated %}
-<form method="post" action="" id="post-reply-form">
-    {% csrf_token %}
-    {% crispy form %}
-    <button type="submit" class="btn btn-primary mt-2" id="post-reply-submit-button">Post Reply</button>
-</form>
+<button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#createPostModal">
+    Add Reply
+</button>
+
+<div class="modal fade" id="createPostModal" tabindex="-1" aria-labelledby="createPostModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form method="post" action="" id="post-reply-form">
+                {% csrf_token %}
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createPostModalLabel">Create a New Post</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {% crispy form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="post-reply-submit-button">Post Reply</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
 {% else %}
 <p>Please <a href="{% url 'login' %}?next={{ request.path }}">login</a> to post a reply.</p>
 {% endif %}
