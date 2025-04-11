@@ -81,4 +81,65 @@ document.addEventListener('DOMContentLoaded', function () {
     {
         console.error("Listener not added. Missing form, posts container, CSRF token, or submit button."); // log the reason
     }
+
+    const likeButtons = document.querySelectorAll('.like-button'); // select all like buttons on the page when it loads
+    console.log(`Found ${likeButtons.length} like buttons.`); // log how many buttons were found
+
+    likeButtons.forEach(button => // add click event listener to each like button
+    {
+        button.addEventListener('click', function ()
+        {
+            const postId = this.dataset.postId; // get post ID from data-post-id
+            const url = this.dataset.url; // get URL from data-url
+            console.log(`Like button clicked for post ${postId}, URL: ${url}`); // log click
+
+            fetch(url, // send fetch request to like/unlike URL
+                {
+                method: 'POST',
+                    headers:
+                    {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json' // sending/expecting JSON (I think its good practice so I added)
+                },
+            })
+                .then(response =>
+                {
+                    console.log(`Like request response status for post ${postId}:`, response.status);
+                    if (!response.ok) // handle errors
+                    {
+                        return response.json().then(errData => { throw errData; }).catch(() => { throw new Error(`HTTP error! status: ${response.status}`); }); // maybe show a more specific error?
+                    }
+                    return response.json(); // parse JSON response
+                })
+                .then(data => // process successful JSON data {message, post_id, liked, like_count}
+                {
+                    console.log(`Like request success data for post ${postId}:`, data);
+
+                    const likeCountSpan = document.getElementById(`like-count-${postId}`); // find like count span for this post
+                    if (likeCountSpan)
+                    {
+                        likeCountSpan.textContent = data.like_count; // update text content of span with new count
+                    }
+
+                    if (data.liked) // if user now likes the post
+                    {
+                        this.textContent = 'Unlike'; // change text to Unlike
+                        this.classList.remove('btn-outline-danger'); // remove outline class
+                        this.classList.add('btn-danger'); // add filled danger class
+                    }
+                    else // if user now doesnt like the post
+                    {
+                        this.textContent = 'Like'; // change text to Like
+                        this.classList.remove('btn-danger'); // remove filled danger class
+                        this.classList.add('btn-outline-danger'); // add outline class
+                    }
+                })
+                .catch(error =>
+                {
+                    console.error(`Error liking/unliking post ${postId}:`, error);
+                    alert('An error occurred while processing your like.');
+                });
+        });
+    });
 });
