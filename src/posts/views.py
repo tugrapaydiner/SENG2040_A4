@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from .models import Topic
+from .models import Topic, Post
+from django.shortcuts import render, get_object_or_404
 
 def topic_list(request):
     topics = Topic.objects.all().order_by('-created_at') # sort by created_at  (newest first)
