@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crispy_forms',
+    'crispy_bootstrap4',
     'posts.apps.PostsConfig',
     'profiles.apps.ProfilesConfig',
 ]
@@ -126,7 +127,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
-CRISPY_TEMPLATE_PACK = "bootstrap4"
 MEDIA_URL = '/media/' # for media files served from server
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
+CRISPY_TEMPLATE_PACK = "bootstrap4"
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

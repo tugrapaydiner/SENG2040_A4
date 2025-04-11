@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 {% block title %}{{ topic.title }}{% endblock title %}
+
 {% block content %}
 <h1>{{ topic.title }}</h1>
 <p>
@@ -13,19 +15,13 @@
   {% if posts %}
     {% for post in posts %}
 <div class="post-container" style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px;">
-
     <p>{{ post.content|linebreaksbr }}</p>
-
     <small>
-
         Posted by: {{ post.author.username }}
         on {{ post.created_at|date:"F j, Y, P" }}
-        <!-- (Likes: {{ post.like_count }}) -->
     </small>
-
     {% if request.user == post.author %}
     {% endif %}
-
     {% with photos=post.get_photos %}
     {% if photos %}
     <div class="post-photos" style="margin-top: 10px;">
@@ -35,7 +31,6 @@
     </div>
     {% endif %}
     {% endwith %}
-
 </div>
     {% endfor %}
   {% else %}
@@ -45,4 +40,18 @@
 <hr>
 
 <h3>Add a Reply</h3>
+
+  {% if user.is_authenticated %}
+
+<form method="post" action="">
+    {% csrf_token %}
+
+    {% crispy form %}
+
+    <button type="submit" class="btn btn-primary mt-2">Post Reply</button>
+</form>
+  {% else %}
+<p>Please <a href="{% url 'login' %}?next={{ request.path }}">login</a> to post a reply.</p>
+<!-- ?next={{ request.path }} tells the login page where to redirect back after login -->
+  {% endif %}
 {% endblock content %}
