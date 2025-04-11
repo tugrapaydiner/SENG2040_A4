@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}{{ topic.title }}{% endblock title %}
+{% block content %}
+<h1>{{ topic.title }}</h1>
+<p>
+    Started by: {{ topic.author.username }}
+    on {{ topic.created_at|date:"F j, Y, P" }}
+</p>
+<hr>
+
+<h2>Replies</h2>
+
+  {% if posts %}
+    {% for post in posts %}
+<div class="post-container" style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px;">
+
+    <p>{{ post.content|linebreaksbr }}</p>
+
+    <small>
+
+        Posted by: {{ post.author.username }}
+        on {{ post.created_at|date:"F j, Y, P" }}
+        <!-- (Likes: {{ post.like_count }}) -->
+    </small>
+
+    {% if request.user == post.author %}
+    {% endif %}
+
+    {% with photos=post.get_photos %}
+    {% if photos %}
+    <div class="post-photos" style="margin-top: 10px;">
+        {% for photo in photos %}
+        <img src="{{ photo.image.url }}" alt="Photo for post {{ post.id }}" style="max-width: 150px; height: auto; margin-right: 5px;">
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+</div>
+    {% endfor %}
+  {% else %}
+<p>No replies have been posted yet.</p>
+  {% endif %}
+
+<hr>
+
+<h3>Add a Reply</h3>
+{% endblock content %}

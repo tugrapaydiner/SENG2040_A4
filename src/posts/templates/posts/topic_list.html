@@ -8,7 +8,7 @@
 <ul>
     {% for topic in topics %}
     <li>
-       <h3><a href="#">{{ topic.title }}</a></h3>
+        <h3><a href="{% url 'topic_detail' pk=topic.pk %}">{{ topic.title }}</a></h3>
         <p>
             Started by: {{ topic.author.username }}
             on {{ topic.created_at|date:"F j, Y, P" }}
