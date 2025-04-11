@@ -7,4 +7,5 @@ urlpatterns = [
     path('', views.topic_list, name='topic_list'),
     path('topic/<int:pk>/', views.topic_detail, name='topic_detail'),
     path('like/<int:pk>/', views.like_unlike_post, name='like_post'),
+    path('delete/<int:pk>/', views.delete_post, name='delete_post'),
 ]

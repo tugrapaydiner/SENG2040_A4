@@ -142,4 +142,63 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         });
     });
+
+    const deleteConfirmButtons = document.querySelectorAll('.confirm-delete-button');
+    console.log(`Found ${deleteConfirmButtons.length} delete confirmation buttons.`); // log count
+
+    deleteConfirmButtons.forEach(button => // listener for each confirm button
+    {
+        button.addEventListener('click', function () {
+            const postId = this.dataset.postId; // get post ID from button's data
+            const url = this.dataset.url; // delete URL from button's data 
+            const modalId = `#deleteConfirmModal-${postId}`; // construct  ID of the parent modal
+            const modalElement = document.querySelector(modalId); // find parent modal element
+
+            console.log(`Confirm delete button clicked for post ${postId}, URL: ${url}`); // log click
+
+            fetch(url, // send fetch request to delete URL
+                {
+                method: 'POST', // use POST (view handles POST or DELETE)
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json' // Specify content type
+                }
+            })
+                .then(response => // handle response
+                {
+                    console.log(`Delete request response status for post ${postId}:`, response.status);
+                    if (!response.ok) //  errors (403 Forbidden, 404 Not Found, 500 Server Error etc.)
+                    {
+                        return response.json().then(errData => { throw errData; }).catch(() => { throw new Error(`HTTP error! status: ${response.status}`); });
+                    }
+                    return response.json(); // parse JSON on success
+                })
+                .then(data => // process success data
+                {
+                    console.log(`Delete request success data for post ${postId}:`, data);
+                    if (data.message === 'success') // check success message from view
+                    {
+                        const postElement = document.getElementById(`post-${postId}`); // find main container div for the post
+                        if (postElement)
+                        {
+                            postElement.remove(); // remove post element from  page
+                            console.log(`Removed post element ${postId} from DOM.`);
+                        }
+                        $(modalId).modal('hide'); // hide confirmation modal ( I used Bootstrap's jQuery )
+                    }
+                    else
+                    {
+                        throw data; // if wasn't 'success' act like an error
+                    }
+                })
+                .catch(error =>// handle errors
+                { 
+                    console.error(`Error deleting post ${postId}:`, error);
+                    alert(`Error deleting post: ${error.error || 'Please try again.'}`); // show error alert
+                    $(modalId).modal('hide'); // hide modal even if there was an error
+                });
+        });
+    });
+
 });

@@ -80,3 +80,16 @@ def like_unlike_post(request, pk):
         })
     else:
         return HttpResponseForbidden("Invalid request method or not AJAX.") # if not AJAX POST request, forbid access
+
+@login_required
+def delete_post(request, pk):
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'  
+    if request.method in ['POST', 'DELETE'] and is_ajax: # allow POST or DELETE methods for deletion via AJAX
+        post = get_object_or_404(Post, pk=pk)
+        if request.user == post.author: # check if logged user is the author
+            post.delete() # delete post from the database
+            return JsonResponse({'message': 'success', 'post_id': pk})
+        else:
+            return JsonResponse({'error': 'You do not have permission to delete this post.'}, status=403) # user is not the author, return forbidden error
+    else:
+        return HttpResponseForbidden("Invalid request method or not AJAX.") # invalid method or not AJAX

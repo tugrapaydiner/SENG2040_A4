@@ -93,8 +93,7 @@
                     <button type="button"
                             class="btn btn-danger confirm-delete-button"
                             data-post-id="{{ post.pk }}"
-                            {# The URL will be added once the view /url is created #}
-                            {# data-url="{% url 'posts:delete_post' pk=post.pk %}" #}>
+                            data-url="{% url 'posts:delete_post' pk=post.pk %}" > {
                         Yes, Delete
                     </button>
                 </div>
