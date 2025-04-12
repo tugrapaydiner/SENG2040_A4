@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log("Upload URL:", uploadUrl);
 
     let myDropzone = null; // hold the Dropzone
-    if (postReplyForm && postReplyForm.classList.contains('dropzone')) // check if element exists and is a dropzone
+    if (postReplyForm && postReplyForm.classList.contains('dropzone') && uploadUrl && csrfToken && submitButton && postsContainer) // check if element exists and is a dropzone
     {
         myDropzone = new Dropzone("#post-reply-form",
             {
@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
             maxFiles: 5, // max 5 of files allowed
             paramName: "file", // name of the file par
                 addRemoveLinks: true, // show remove links for uploaded files
+                acceptedFiles: "image/*",
                 headers: // add CSRF token to Dropzone requests
                 { 
                     'X-CSRFToken': csrfToken

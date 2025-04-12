@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Profile{% endblock title %}
+
+{% block content %}
+<h1>Edit Your Profile</h1>
+<hr>
+<form method="post" enctype="multipart/form-data">
+    {# Add enctype if adding ImageField later #}
+    {% csrf_token %}
+    {% crispy form %}
+    <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+    <a href="{% url 'profiles:profile_detail' username=request.user.username %}" class="btn btn-secondary mt-3">Cancel</a>
+</form>
+{% endblock content %}

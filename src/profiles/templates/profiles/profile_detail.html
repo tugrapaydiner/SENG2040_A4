@@ -1,0 +1,4 @@
+         {% if request.user == profile.user %}
+            <hr>
+            <a href="{% url 'profiles:profile_edit' %}" class="btn btn-secondary">Edit Profile</a>
+         {% endif %}

@@ -5,7 +5,7 @@ User = settings.AUTH_USER_MODEL # get active User model in settings
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE) # if User deleted, delete Profile
-    # I can add more fields like bio, avatar later
+    bio = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True) # record creation time auto (once)
     updated = models.DateTimeField(auto_now=True) # record update time auto (every save)
 
