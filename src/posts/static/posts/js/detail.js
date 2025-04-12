@@ -8,178 +8,124 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log("Form found:", postReplyForm);
     console.log("Posts container found:", postsContainer);
     console.log("Submit button found:", submitButton);
-
+    const topicPkElement = document.querySelector('[data-topic-id]');
+    const topicPk = topicPkElement?.dataset.topicId;
     const csrfInput = postReplyForm?.querySelector('input[name=csrfmiddlewaretoken]'); // find csrf input element
     const csrfToken = csrfInput?.value; // get csrf token value
     console.log("CSRF input found:", csrfInput);
     console.log("CSRF token found:", csrfToken);
+    console.log("Topic PK found:", topicPk);
+    const uploadUrl = topicPk ? `/upload/${topicPk}/` : null;
+    console.log("Upload URL:", uploadUrl);
 
     let myDropzone = null; // hold the Dropzone
     if (postReplyForm && postReplyForm.classList.contains('dropzone')) // check if element exists and is a dropzone
     {
         myDropzone = new Dropzone("#post-reply-form",
             {
-            url: "{% url 'posts:upload_photo' %}", // placeholder for now I will make on for URL for uploading files
+            url: uploadUrl,
             autoProcessQueue: false, // don't upload files automatically when added
             uploadMultiple: true, // allow uploading multiple files in one request
             parallelUploads: 5, // max 5 files to upload parallel
             maxFiles: 5, // max 5 of files allowed
             paramName: "file", // name of the file par
-            addRemoveLinks: true, // show remove links for uploaded files
+                addRemoveLinks: true, // show remove links for uploaded files
+                headers: // add CSRF token to Dropzone requests
+                { 
+                    'X-CSRFToken': csrfToken
+                },
                 init: function ()
                 {
                 const submitButton = document.getElementById('post-reply-submit-button');
                 const dz = this; // reference to Dropzone 
-
-                    submitButton.addEventListener('click', function () // process queue when submit button is clicked
+                    submitButton.addEventListener('click', function () // listener for the modal's submit button
                     {
-                    console.log("Submit button clicked, attempting to process Dropzone queue...");
-                        if (dz.getQueuedFiles().length > 0)
+                        console.log("Submit button clicked for Dropzone.");
+                        const textContent = postReplyForm.querySelector('textarea[name="content"]').value; // check if there's text OR files before processing
+                        if (dz.getQueuedFiles().length > 0 || textContent.trim() !== '')
                         {
-                        dz.processQueue(); // upload files if any are queued
+                            dz.processQueue();
                         }
-                        else // if no files, submit text content directly (I will refine this later)
+                        else
                         {
-                        submitTextPost(); // call function to handle text only submission
-                    }
-                });
+                            alert("Please add content or files to post."); // alert if nothing to submit
+                        }
+                    });
 
-                    this.on("successmultiple", function (files, response) //  successful uploads (multiple files)
+                    this.on("sendingmultiple", function (file, xhr, formData) // event before sending files (and text content)
                     {
-                    console.log("Dropzone successmultiple:", response);
-                    submitTextPost(response.post_id);
-                    dz.removeAllFiles()
-                });
+                        const textContent = postReplyForm.querySelector('textarea[name="content"]').value; // append text and CSRF token before sending
+                        formData.append("content", textContent); // backend view will get this from request.POST
+                        console.log("Dropzone sending files with content:", textContent); // CSRF handled by headers option now
+                    });
 
-                    this.on("errormultiple", function (files, response) // handle errors during upload
+                    this.on("successmultiple", function (files, response) // successful upload (of files and text data)
                     {
-                    console.error("Dropzone errormultiple:", response);
-                    alert(`Error uploading files: ${response.error || 'Please try again'}`);
-                });
+                        console.log("Dropzone successmultiple:", response); // log JSON response from the view
+                        if (response.message === 'success') // check success message from our view
+                        {
+                            const newPostDiv = document.createElement('div'); // create new div
+                            newPostDiv.classList.add('post-container'); // add styling class
+                            newPostDiv.setAttribute('id', `post-${response.post_id}`); // set unique ID for the new post
+                            newPostDiv.style.cssText = "margin-bottom: 20px; border: 1px solid #eee; padding: 10px; background-color: #f0fff0;";
 
-                    this.on("sendingmultiple", function (file, xhr, formData) // maybe handle sending the text content along with files?
+                            let photosHTML = '';
+                            if (response.photo_urls && response.photo_urls.length > 0) {
+                                photosHTML = '<div class="post-photos" style="margin-top: 10px;">';
+                                response.photo_urls.forEach(url => {
+                                    photosHTML += `<img src="${url}" alt="Photo for post ${response.post_id}" style="max-width: 150px; height: auto; margin-right: 5px;">`;
+                                });
+                                photosHTML += '</div>';
+                            }
+
+                            newPostDiv.innerHTML = `
+                            <p id="post-content-${response.post_id}">${response.content_html}</p> {# Use pre-rendered HTML #}
+                            <small>
+                                Posted by: ${response.author}
+                                on ${response.created_at}
+                                <span style="margin-left: 15px;">
+                                    Likes: <span id="like-count-${response.post_id}">${response.like_count}</span>
+                                    {# TODO: Add like/edit/delete buttons dynamically for new post #}
+                                </span>
+                            </small>
+                            ${photosHTML} {# Include photos HTML if any #}
+                        `;
+                            postsContainer.appendChild(newPostDiv);
+
+                            const noRepliesMsg = postsContainer.querySelector('p'); // remove "No replies" message if it was there
+                            if (noRepliesMsg && noRepliesMsg.textContent.includes("No replies have been posted yet"))
+                            {
+                                noRepliesMsg.remove();
+                            }
+
+                            dz.removeAllFiles(); // clear Dropzone previews
+                            postReplyForm.reset(); // clear text area
+                            $('#createPostModal').modal('hide'); // close modal using jQuery from Bootstrap bundle
+                            console.log("Post created, form reset, Dropzone cleared, modal closed.");
+                        }
+                        else
+                        {
+                            alert(`Error: ${response.error || 'Failed to create post.'}`); // backend returns 200 OK but with an error message in JSON
+                        }
+                    });
+
+                    this.on("errormultiple", function (files, response) // event on upload error
                     {
-                        const textContent = postReplyForm.querySelector('textarea[name="content"]').value; // text content to FormData sent with files
-                    formData.append("content", textContent);
-                    console.log("Appending text content to Dropzone upload:", textContent);
-                    formData.append("csrfmiddlewaretoken", csrfToken);
-                });
-            }
-        });
-        console.log("Dropzone initialized for #post-reply-form");
-    } else
-    {
-        console.log("Dropzone form not found.");
-    }
+                        console.error("Dropzone errormultiple:", response);
+                        const message = (typeof response === 'object' && response !== null && response.error) ? response.error : 'Upload failed. Please try again';
+                        alert(`Error uploading files: ${message}`);
+                    });
 
-    function submitTextPost(postIdFromUpload = null) // function to handle submitting only text content (modified from original form submit)
-    {
-        console.log("Submitting text post...");
-        const textContent = postReplyForm.querySelector('textarea[name="content"]').value;
-        const formData = new FormData();
-        formData.append('content', textContent);
-        formData.append('csrfmiddlewaretoken', csrfToken);
-
-        if (postIdFromUpload)
-        {
-            formData.append('post_id', postIdFromUpload); // need backend view to handle this
-        }
-
-        const textSubmitUrl = "{% url 'posts:create_text_post' topic_pk=topic.pk %}"; // PLACEHOLDER FOR NOW I WILL FIX IT
-
-        fetch(textSubmitUrl,
-            {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Text post submission success:', data);
-                // Add post to DOM (similar to previous AJAX add)
-                // ... (DOM manipulation code) ...
-                postReplyForm.reset();
-                $('#createPostModal').modal('hide');
-            })
-            .catch(error =>
-            {
-                console.error('Error submitting text post:', error);
-                alert('Error submitting post.');
+                }
             });
-    }
-
-
-    if (postReplyForm && postsContainer && csrfToken && submitButton) // make sure all elements exist
-    {
-        console.log("Adding CLICK listener to button...");
-        submitButton.addEventListener('click', function (event) // Listen for button click
+        console.log("Dropzone initialized for #post-reply-form");
+    } else // if Dropzone couldn't be initialized
+    { 
+        console.error("Dropzone form, Upload URL, CSRF token, submit button or posts container not found. Dropzone NOT initialized.");
+        if (submitButton) // fallback 
         {
-            event.preventDefault(); // stop default form submission behavior
-            console.log('Submit BUTTON CLICK intercepted.'); // log click interception
-
-            const formData = new FormData(postReplyForm); // get form data
-            console.log('FormData content:', formData.get('content')); // log content being sent
-            console.log('Initiating fetch request...'); // log fetch start
-
-            fetch(postReplyForm.action, // send AJAX request to form's action URL
-                {
-                    method: 'POST', // use POST method
-                    body: formData, // send form data as body
-                    headers:
-                    {
-                        'X-CSRFToken': csrfToken, // include CSRF token for security
-                        'X-Requested-With': 'XMLHttpRequest', // mark as AJAX request
-                    },
-                })
-                .then(response => // handle response from server
-                {
-                    console.log("Received response from server:", response.status); // log response status
-                    if (!response.ok) // check for server errors (like 400, 401, 500)
-                    {
-                        return response.json().then(errData => { throw errData; }).catch(() => { throw new Error(`HTTP error! status: ${response.status}`); }); // try to parse error details if server sent JSON, otherwise throw generic error
-                    }
-                    return response.json(); // parse successful JSON response
-                })
-                .then(data => // process successful data from server
-                {
-                    console.log('Success Data:', data); // log success data (for debugging)
-
-                    const newPostDiv = document.createElement('div'); // create a new div element
-                    newPostDiv.classList.add('post-container'); // add the same class as existing posts
-                    newPostDiv.style.cssText = "margin-bottom: 20px; border: 1px solid #eee; padding: 10px; background-color: #f0fff0;"; // light green background
-
-                    newPostDiv.innerHTML = `
-                        <p>${data.content.replace(/\n/g, '<br>')}</p>
-                        <small>
-                            Posted by: ${data.author}
-                            on ${data.created_at}
-                        </small>
-                    `;
-
-                    postsContainer.appendChild(newPostDiv); // append new created div to posts container on the page
-
-                    const noRepliesMsg = postsContainer.querySelector('p'); // find the "No replies" message (if it exists)
-                    if (noRepliesMsg && noRepliesMsg.textContent.includes("No replies have been posted yet")) // if message exists and contains the specific text, remove it
-                    {
-                        noRepliesMsg.remove();
-                    }
-
-                    postReplyForm.reset(); // clear the form fields
-                    console.log("Form reset."); // log form reset
-                })
-                .catch((error) => // handle fetch errors or errors thrown from .then()
-                {
-                    console.error('Error submitting post:', error); // log the error
-                    alert('Failed to post reply. Please check your input or try again later.'); // show a simple error alert to user
-                });
-        });
-    }
-    else // if any required element wasn't found
-    {
-        console.error("Listener not added. Missing form, posts container, CSRF token, or submit button."); // log the reason
+            submitButton.addEventListener('click', () => alert('Error: Reply functionality not available.'));
+        }
     }
 
     const likeButtons = document.querySelectorAll('.like-button'); // select all like buttons on the page when it loads

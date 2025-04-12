@@ -120,3 +120,47 @@ def edit_post(request, pk):
              return JsonResponse({'error': 'Content field missing.'}, status=400) # bad request
     else:
         return HttpResponseForbidden("Invalid request method or not AJAX.") # invalid method or not AJAX
+    
+@login_required
+def handle_file_upload(request, topic_pk):
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if request.method == 'POST' and is_ajax: # expecting AJAX POST request from Dropzone
+        try:
+            topic = get_object_or_404(Topic, pk=topic_pk) 
+            content = request.POST.get('content', '') # get content from FormData (sent by Dropzone's 'sendingmultiple' event)
+            uploaded_files = request.FILES.getlist('file') # get list of uploaded files (using paramName 'file')
+
+            if not content and not uploaded_files: # added a validation
+                 return JsonResponse({'error': 'No content or files provided.'}, status=400)
+            if len(uploaded_files) > 5: # check against maxFiles limit
+                return JsonResponse({'error': 'Too many files uploaded.'}, status=400)
+
+            new_post = Post.objects.create( # create Post object first
+                author=request.user,
+                topic=topic,
+                content=content.strip()
+            )
+
+            photo_urls = [] # keep track of created photo URLs if I need for later use
+            for file in uploaded_files:
+                photo = Photo.objects.create(post=new_post, image=file)
+                photo_urls.append(photo.image.url)
+
+            return JsonResponse({ # send success response for JS to handle new post details
+                'message': 'success',
+                'post_id': new_post.pk, # ID of the created post
+                'content': new_post.content,
+                'author': new_post.author.username,
+                'created_at': new_post.created_at.strftime('%B %d, %Y, %I:%M %p').replace('AM', 'a.m.').replace('PM', 'p.m.'),
+                'photo_urls': photo_urls, # list of URLs for uploaded photos (optional)
+                'content_html': new_post.content.replace('\n', '<br>'), # prerender
+                'like_count': 0, # new post starts with 0 likes
+                'author_username': request.user.username
+            })
+
+        except Exception as e: # log exception for debugging (serverside)
+            print(f"Error during file upload: {e}") # logging
+            return JsonResponse({'error': 'An unexpected error occurred during upload.'}, status=500) # internal server error
+
+    else:
+        return HttpResponseForbidden("Invalid request method or not AJAX.")

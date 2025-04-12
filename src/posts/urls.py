@@ -9,4 +9,5 @@ urlpatterns = [
     path('like/<int:pk>/', views.like_unlike_post, name='like_post'),
     path('delete/<int:pk>/', views.delete_post, name='delete_post'),
     path('edit/<int:pk>/', views.edit_post, name='edit_post'),
+    path('upload/<int:topic_pk>/', views.handle_file_upload, name='upload_photo'),
 ]
