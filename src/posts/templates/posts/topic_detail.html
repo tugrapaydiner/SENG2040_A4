@@ -60,12 +60,32 @@
         </span>
         {% endif %}
 
+        {# Replacing simple image display with a Bootstrap Carousel #}
         {% with photos=post.get_photos %}
         {% if photos %}
-        <div class="post-photos" style="margin-top: 10px;">
-            {% for photo in photos %}
-            <img src="{{ photo.image.url }}" alt="Photo for post {{ post.id }}" style="max-width: 150px; height: auto; margin-right: 5px;">
-            {% endfor %}
+        <div id="carouselPost{{ post.pk }}" class="carousel slide mt-2 mb-2" data-ride="carousel" style="max-width: 300px; margin: auto;">
+            <ol class="carousel-indicators">
+                {% for photo in photos %}
+                <li data-target="#carouselPost{{ post.pk }}" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}"></li>
+                {% endfor %}
+            </ol>
+            <div class="carousel-inner">
+                {% for photo in photos %}
+                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                    <img src="{{ photo.image.url }}" class="d-block w-100" alt="Photo for post {{ post.id }}">
+                </div>
+                {% endfor %}
+            </div>
+            {% if photos|length > 1 %}
+            <a class="carousel-control-prev" href="#carouselPost{{ post.pk }}" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+            </a>
+            <a class="carousel-control-next" href="#carouselPost{{ post.pk }}" role="button" data-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+            </a>
+            {% endif %}
         </div>
         {% endif %}
         {% endwith %}
@@ -138,7 +158,8 @@
 <div class="modal fade" id="createPostModal" tabindex="-1" aria-labelledby="createPostModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="" id="post-reply-form">
+            <!-- IMPORTANT: Remove action="" from form, Dropzone will handle submission URL -->
+            <form method="post" id="post-reply-form" class="dropzone" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-header">
                     <h5 class="modal-title" id="createPostModalLabel">Create a New Post</h5>
@@ -148,10 +169,17 @@
                 </div>
                 <div class="modal-body">
                     {% crispy form %}
+                    <hr>
+                    <label>Upload Photos (Optional):</label>
+                    <div class="fallback">
+                        <input name="file" type="file" multiple />
+                    </div>
+                    <div class="dz-message" data-dz-message><span>Click or drop files here</span></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary" id="post-reply-submit-button">Post Reply</button>
+                    <!-- Change button type to "button" - Dropzone will trigger submission -->
+                    <button type="button" class="btn btn-primary" id="post-reply-submit-button">Post Reply</button>
                 </div>
             </form>
         </div>

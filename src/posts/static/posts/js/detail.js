@@ -1,3 +1,5 @@
+Dropzone.autoDiscover = false;
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log("DOM fully loaded.");
     const postReplyForm = document.getElementById('post-reply-form'); // find the form
@@ -11,6 +13,104 @@ document.addEventListener('DOMContentLoaded', function () {
     const csrfToken = csrfInput?.value; // get csrf token value
     console.log("CSRF input found:", csrfInput);
     console.log("CSRF token found:", csrfToken);
+
+    let myDropzone = null; // hold the Dropzone
+    if (postReplyForm && postReplyForm.classList.contains('dropzone')) // check if element exists and is a dropzone
+    {
+        myDropzone = new Dropzone("#post-reply-form",
+            {
+            url: "{% url 'posts:upload_photo' %}", // placeholder for now I will make on for URL for uploading files
+            autoProcessQueue: false, // don't upload files automatically when added
+            uploadMultiple: true, // allow uploading multiple files in one request
+            parallelUploads: 5, // max 5 files to upload parallel
+            maxFiles: 5, // max 5 of files allowed
+            paramName: "file", // name of the file par
+            addRemoveLinks: true, // show remove links for uploaded files
+                init: function ()
+                {
+                const submitButton = document.getElementById('post-reply-submit-button');
+                const dz = this; // reference to Dropzone 
+
+                    submitButton.addEventListener('click', function () // process queue when submit button is clicked
+                    {
+                    console.log("Submit button clicked, attempting to process Dropzone queue...");
+                        if (dz.getQueuedFiles().length > 0)
+                        {
+                        dz.processQueue(); // upload files if any are queued
+                        }
+                        else // if no files, submit text content directly (I will refine this later)
+                        {
+                        submitTextPost(); // call function to handle text only submission
+                    }
+                });
+
+                    this.on("successmultiple", function (files, response) //  successful uploads (multiple files)
+                    {
+                    console.log("Dropzone successmultiple:", response);
+                    submitTextPost(response.post_id);
+                    dz.removeAllFiles()
+                });
+
+                    this.on("errormultiple", function (files, response) // handle errors during upload
+                    {
+                    console.error("Dropzone errormultiple:", response);
+                    alert(`Error uploading files: ${response.error || 'Please try again'}`);
+                });
+
+                    this.on("sendingmultiple", function (file, xhr, formData) // maybe handle sending the text content along with files?
+                    {
+                        const textContent = postReplyForm.querySelector('textarea[name="content"]').value; // text content to FormData sent with files
+                    formData.append("content", textContent);
+                    console.log("Appending text content to Dropzone upload:", textContent);
+                    formData.append("csrfmiddlewaretoken", csrfToken);
+                });
+            }
+        });
+        console.log("Dropzone initialized for #post-reply-form");
+    } else
+    {
+        console.log("Dropzone form not found.");
+    }
+
+    function submitTextPost(postIdFromUpload = null) // function to handle submitting only text content (modified from original form submit)
+    {
+        console.log("Submitting text post...");
+        const textContent = postReplyForm.querySelector('textarea[name="content"]').value;
+        const formData = new FormData();
+        formData.append('content', textContent);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        if (postIdFromUpload)
+        {
+            formData.append('post_id', postIdFromUpload); // need backend view to handle this
+        }
+
+        const textSubmitUrl = "{% url 'posts:create_text_post' topic_pk=topic.pk %}"; // PLACEHOLDER FOR NOW I WILL FIX IT
+
+        fetch(textSubmitUrl,
+            {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Text post submission success:', data);
+                // Add post to DOM (similar to previous AJAX add)
+                // ... (DOM manipulation code) ...
+                postReplyForm.reset();
+                $('#createPostModal').modal('hide');
+            })
+            .catch(error =>
+            {
+                console.error('Error submitting text post:', error);
+                alert('Error submitting post.');
+            });
+    }
+
 
     if (postReplyForm && postsContainer && csrfToken && submitButton) // make sure all elements exist
     {
